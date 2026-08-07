@@ -1,13 +1,13 @@
 {
-  "name": "@rsc-labs/medusa-documents",
+  "name": "@zosmaai/medusa-documents-v1",
   "version": "0.9.1",
   "description": "Generate documents from Medusa",
   "main": "dist/index.js",
-  "author": "RSC Labs (https://rsoftcon.com)",
+  "author": "SensaLab <info@sensalab.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/RSC-Labs/medusa-documents"
+    "url": "https://github.com/SensaLab/medusa-documents"
   },
   "keywords": [
     "medusa-plugin",

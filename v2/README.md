@@ -6,7 +6,7 @@ Medusa documents is a plugin which provides you ability to generate various docu
 
 ```json
 ...
-"@rsc-labs/medusa-documents-v2": "0.1.6" // or other available version
+"@zosmaai/medusa-documents-v2": "0.1.6" // or other available version
 ...
 ```
 and execute install, e.g. `yarn install`.
@@ -17,7 +17,7 @@ and execute install, e.g. `yarn install`.
 ...
 plugins: [
     {
-      resolve: "@rsc-labs/medusa-documents-v2",
+      resolve: "@zosmaai/medusa-documents-v2",
       options: {}
     }
 ]
@@ -104,7 +104,7 @@ You can configure language of documents using `medusa-config.js` file. Here is t
 
 ```js
 {
-  resolve: `@rsc-labs/medusa-documents-v2`,
+  resolve: `@zosmaai/medusa-documents-v2`,
   options: {
     document_language: 'pl'
   }
@@ -119,7 +119,7 @@ You have two options:
 
 - create `translation.json` under `/assets/i18n/locales/{your-language}` and create a pull requests - we will be more than happy to merge it
 
-- create `translation.json` only for local purposes. Then you need to go to `node_modules/@rsc-labs/medusa-documents/assets/i18n/locales/{your-language}` and paste there your translation file.
+- create `translation.json` only for local purposes. Then you need to go to `node_modules/@zosmaai/medusa-documents/assets/i18n/locales/{your-language}` and paste there your translation file.
 
 Please remember that `documentLanguage` in `medusa-config.js`  needs to be equal to `{your-language}`.
 

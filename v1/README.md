@@ -1,9 +1,3 @@
-<p align="center">
-  <picture>
-    <img alt="Medusa documents logo" src="https://raw.githubusercontent.com/RSC-Labs/medusa-documents/d41b6dadafc1a01094b1db976676eee048709f2e/docs/medusa-documents-logo.png">
-  </picture>
-</p>
-
 # Medusa documents
 
 ## What is it?
@@ -12,14 +6,14 @@ Medusa documents is a plugin which provides you ability to generate various docu
 
 ## How to install?
 
-1. Install the package with `yarn add @rsc-labs/medusa-documents` or `npm i @rsc-labs/medusa-documents`.
+1. Install the package with `yarn add @zosmaai/medusa-documents` or `npm i @zosmaai/medusa-documents`.
 2. In `medusa-config.js`, add the plugin to the `plugins` array and set `enableUI`
 
 ```js
 const plugins = [
   // ... other plugins
   {
-    resolve: `@rsc-labs/medusa-documents`,
+    resolve: `@zosmaai/medusa-documents`,
     options: {
       enableUI: true
     }
@@ -108,7 +102,7 @@ You can configure language of documents using `medusa-config.js` file. Here is t
 const plugins = [
   // ... other plugins
   {
-    resolve: `@rsc-labs/medusa-documents`,
+    resolve: `@zosmaai/medusa-documents`,
     options: {
       enableUI: true,
       documentLanguage: 'pl'
@@ -125,7 +119,7 @@ You have two options:
 
 - create `translation.json` under `/assets/i18n/locales/{your-language}` and create a pull requests - we will be more than happy to merge it
 
-- create `translation.json` only for local purposes. Then you need to go to `node_modules/@rsc-labs/medusa-documents/assets/i18n/locales/{your-language}` and paste there your translation file.
+- create `translation.json` only for local purposes. Then you need to go to `node_modules/@zosmaai/medusa-documents/assets/i18n/locales/{your-language}` and paste there your translation file.
 
 Please remember that `documentLanguage` in `medusa-config.js`  needs to be equal to `{your-language}`.
 
