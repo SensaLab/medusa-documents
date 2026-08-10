@@ -19,17 +19,7 @@ Medusa documents is a plugin which provides you ability to generate various docu
 
 ## Supported Medusa versions
 
-Choose README dependent on your Medusa version.
-
-<h2>
-  Medusa V1
-</h2>
-
-[README](https://github.com/RSC-Labs/medusa-documents/blob/main/v1/README.md)
-
-<h2>
-  Medusa V2
-</h2>
+Medusa V2 only.
 
 [README](https://github.com/RSC-Labs/medusa-documents/blob/main/v2/README.md)
 
