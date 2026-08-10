@@ -21,7 +21,7 @@
   ],
   "scripts": {
     "build": "medusa plugin:build && cp -r src/modules/documents/assets .medusa/server/src/modules/documents/assets",
-    "prepare": "npm run build",
+    "prepare": "pnpm run build",
     "dev": "medusa plugin:develop"
   },
   "dependencies": {
