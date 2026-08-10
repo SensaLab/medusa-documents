@@ -18,6 +18,7 @@ const DocumentSettings = model.define("document_settings", {
   id: model.id().primaryKey(),
   storeAddress: model.json().nullable(),
   storeLogoSource: model.text().nullable(),
+  storeIndiaGstDetails: model.json().nullable(),
   documentInvoice: model.hasMany(() => DocumentInvoice, {
     mappedBy: 'settings'
   }),

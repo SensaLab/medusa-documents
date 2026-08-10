@@ -15,6 +15,7 @@ import { Grid } from "@mui/material";
 import AddressChangeModal from "../settings/settings-address";
 import LogoChangeModal from "../settings/settings-logo";
 import InvoiceSettingsModal from "../settings/settings-invoice";
+import IndiaGstChangeModal from "../settings/settings-india-gst";
 
 export const SettingsTab = () => {
   return (
@@ -39,6 +40,9 @@ export const SettingsTab = () => {
             </Grid>
             <Grid item>
               <LogoChangeModal/>
+            </Grid>
+            <Grid item>
+              <IndiaGstChangeModal/>
             </Grid>
           </Grid>
         </Container>

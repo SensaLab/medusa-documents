@@ -12,7 +12,8 @@
 
 export enum InvoiceTemplateKind {
   BASIC = 'BASIC',
-  BASIC_LOGO = 'BASIC_LOGO'
+  BASIC_LOGO = 'BASIC_LOGO',
+  INDIA_GST = 'INDIA_GST'
 }
 
 export enum PackingSlipTemplateKind {

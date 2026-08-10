@@ -10,9 +10,18 @@
  * limitations under the License.
  */
 
+export type IndiaGstDetailsDTO = {
+  gstin?: string | null,
+  legalName?: string | null,
+  pan?: string | null,
+  cin?: string | null,
+  signatureSource?: string | null,
+}
+
 export type DocumentSettingsDTO = {
   storeAddress: Record<string, any> | null,
   storeLogoSource: string | null,
+  storeIndiaGstDetails: IndiaGstDetailsDTO | null,
 }
 
 export type DocumentInvoiceSettingsDTO = {

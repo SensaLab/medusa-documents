@@ -15,6 +15,7 @@ import { DocumentInvoiceDTO, DocumentSettingsDTO } from "../../types/dto";
 import { InvoiceTemplateKind } from "../../types/template-kind";
 import basicTemplate, { validateInput as validateInputBasic} from '../templates/invoices/basic/basic'
 import basicLogoTemplate, { validateInput as validateInputBasicLogo} from '../templates/invoices/basic/basic-logo'
+import indiaGstTemplate, { validateInput as validateInputIndiaGst} from '../templates/invoices/india-gst/india-gst'
 
 export function validateInputForProvidedKind(templateKind: InvoiceTemplateKind, documentSettings: any) : ([boolean, string]) {
   switch (templateKind) {
@@ -22,6 +23,8 @@ export function validateInputForProvidedKind(templateKind: InvoiceTemplateKind, 
       return validateInputBasic(documentSettings);
     case InvoiceTemplateKind.BASIC_LOGO:
       return validateInputBasicLogo(documentSettings);
+    case InvoiceTemplateKind.INDIA_GST:
+      return validateInputIndiaGst(documentSettings);
     default:
       return [false, 'Not supported template'];
   }
@@ -33,6 +36,8 @@ export function generateInvoice(kind: InvoiceTemplateKind, documentSettings: Doc
       return basicTemplate(documentSettings, invoice, order);
     case InvoiceTemplateKind.BASIC_LOGO:
       return basicLogoTemplate(documentSettings, invoice, order);
+    case InvoiceTemplateKind.INDIA_GST:
+      return indiaGstTemplate(documentSettings, invoice, order);
     default:
       return Promise.resolve(Buffer.from('Not supported template'));
   }

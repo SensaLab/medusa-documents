@@ -129,6 +129,12 @@ const ChooseTemplate = (props: ChooseTemplateProps) => {
           Basic with logo
         </Label>
       </div>
+      <div className="flex items-center gap-x-3">
+        <RadioGroup.Item value={InvoiceTemplateKind.INDIA_GST.toString()} id={InvoiceTemplateKind.INDIA_GST.toString()} />
+        <Label htmlFor="radio_1" weight="plus">
+          India GST
+        </Label>
+      </div>
     </RadioGroup>
   )
 }

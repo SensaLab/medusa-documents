@@ -20,6 +20,7 @@ import DocumentSettings from "./models/document-settings";
 import DocumentInvoiceSettings from "./models/document-invoice-settings";
 import DocumentPackingSlipSettings from "./models/document-packing-slip-settings";
 import { DocumentAddress } from "./types/api";
+import { IndiaGstDetailsDTO } from "./types/dto";
 import { InvoiceTemplateKind, PackingSlipTemplateKind } from "./types/template-kind";
 import { INVOICE_NUMBER_PLACEHOLDER, PACKING_SLIP_NUMBER_PLACEHOLDER } from "./types/constants";
 import { generateInvoice, validateInputForProvidedKind } from "./services/generators/invoice-generator";
@@ -497,7 +498,8 @@ class DocumentsModuleService extends MedusaService({
     if (lastDocumentSettings && lastDocumentSettings.length) {
       const result = await this.createDocumentSettings({
         storeLogoSource: logoSource,
-        storeAddress: lastDocumentSettings[0].storeAddress
+        storeAddress: lastDocumentSettings[0].storeAddress,
+        storeIndiaGstDetails: lastDocumentSettings[0].storeIndiaGstDetails
       });
       return result;
     } else {
@@ -524,6 +526,7 @@ class DocumentsModuleService extends MedusaService({
         // deleted_at: undefined,
         storeAddress: address,
         storeLogoSource: lastDocumentSettings[0].storeLogoSource,
+        storeIndiaGstDetails: lastDocumentSettings[0].storeIndiaGstDetails,
         // documentInvoice: lastDocumentSettings[0].documentInvoice,
         // documentInvoice: lastDocumentSettings[0].documentInvoice,
         // documentPackingSlip: lastDocumentSettings[0].documentPackingSlip
@@ -532,6 +535,28 @@ class DocumentsModuleService extends MedusaService({
     } else {
       const result = await this.createDocumentSettings({
         storeAddress: address,
+      })
+      return result;
+    }
+  }
+
+  async updateStoreIndiaGstDetails(details: IndiaGstDetailsDTO) : Promise<any> {
+    const lastDocumentSettings = await this.listDocumentSettings({}, {
+      order: {
+        created_at: "DESC"
+      },
+      take: 1
+    })
+    if (lastDocumentSettings && lastDocumentSettings.length) {
+      const result = await this.createDocumentSettings({
+        storeIndiaGstDetails: details,
+        storeAddress: lastDocumentSettings[0].storeAddress,
+        storeLogoSource: lastDocumentSettings[0].storeLogoSource
+      });
+      return result;
+    } else {
+      const result = await this.createDocumentSettings({
+        storeIndiaGstDetails: details
       })
       return result;
     }
