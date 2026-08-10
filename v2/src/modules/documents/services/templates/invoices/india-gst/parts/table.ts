@@ -65,6 +65,7 @@ export function generateInvoiceTable(
   doc.font("Regular");
 
   let currentY = invoiceTableTop + 25;
+  let taxableTotal = 0;
   for (i = 0; i < items.length; i++) {
     if (currentY > pageHeight) {
       doc.addPage();
@@ -72,14 +73,16 @@ export function generateInvoiceTable(
     }
 
     const item = items[i];
+    const lineTaxableValue = Number(item.raw_subtotal.value);
+    taxableTotal += lineTaxableValue;
     currentY = generateTableRow(
       doc,
       currentY,
       item.title,
       item.metadata?.hsn_code ? String(item.metadata.hsn_code) : '',
       item.quantity,
-      amountToDisplayNormalized(Number(item.raw_unit_price.value), order.currency_code),
-      amountToDisplayNormalized(Number(item.raw_unit_price.value) * item.quantity, order.currency_code)
+      amountToDisplayNormalized(lineTaxableValue / item.quantity, order.currency_code),
+      amountToDisplayNormalized(lineTaxableValue, order.currency_code)
     );
 
     currentY += 5;
@@ -102,6 +105,13 @@ export function generateInvoiceTable(
   const grandTotal = (order.total as BigNumber).numeric;
 
   doc.fontSize(9);
+  currentY = generateTotalRow(
+    doc,
+    currentY,
+    t("invoice-table-taxable-value", "Taxable Value"),
+    amountToDisplayNormalized(taxableTotal, order.currency_code)
+  );
+
   currentY = generateTotalRow(
     doc,
     currentY,
