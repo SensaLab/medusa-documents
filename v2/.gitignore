@@ -16,4 +16,3 @@ yarn.lock
 medusa-db.sql
 build
 .cache
-.medusa
