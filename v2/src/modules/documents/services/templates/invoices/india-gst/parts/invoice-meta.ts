@@ -7,7 +7,7 @@ export function generateInvoiceMeta(doc, y: number, invoice: DocumentInvoiceDTO,
 
   const lines = [
     `${t("invoice-number", "Invoice No")}: ${invoice.displayNumber}`,
-    `${t("invoice-date", "Invoice Date")}: ${invoice.created_at.toLocaleDateString()}`,
+    `${t("invoice-date", "Invoice Date")}: ${new Date(order.created_at).toLocaleDateString()}`,
   ];
 
   const placeOfSupply = order.billing_address?.province || order.billing_address?.city;
