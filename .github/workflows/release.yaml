@@ -12,6 +12,8 @@ jobs:
   npm_package:
     name: Publish NPM package
     runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
