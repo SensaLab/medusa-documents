@@ -1,6 +1,6 @@
 {
   "name": "@zosmaai/medusa-documents-v2",
-  "version": "0.2.15",
+  "version": "0.2.16",
   "description": "Generate documents from Medusa",
   "author": "SensaLab <info@sensalab.com>",
   "license": "MIT",

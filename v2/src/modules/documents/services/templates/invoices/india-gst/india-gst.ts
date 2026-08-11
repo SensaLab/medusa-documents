@@ -66,7 +66,7 @@ export default async (settings: DocumentSettingsDTO, invoice: DocumentInvoiceDTO
   const interState = isInterState(settings, order);
   const endTable = generateInvoiceTable(doc, endCustomer, order, order.items || [], interState);
 
-  await generateFooter(doc, endTable, settings);
+  await generateFooter(doc, endTable);
 
   doc.end();
 

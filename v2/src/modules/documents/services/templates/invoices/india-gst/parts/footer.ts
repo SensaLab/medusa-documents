@@ -1,9 +1,10 @@
-import { DocumentSettingsDTO } from '../../../../../types/dto';
+const TERMS = [
+  '1. Any discrepancy in the invoice should be communicated within [X] days.',
+  '2. All transactions are subject to the applicable terms and conditions.',
+  '3. This invoice is generated electronically.',
+];
 
-export async function generateFooter(doc, y: number, settings: DocumentSettingsDTO): Promise<number> {
-  const gst = settings.storeIndiaGstDetails;
-  const legalName = gst?.legalName || settings.storeAddress?.company || '';
-
+export async function generateFooter(doc, y: number): Promise<number> {
   const pageHeight = doc.page.height - 100;
   let _y = y;
   if (_y > pageHeight) {
@@ -13,31 +14,23 @@ export async function generateFooter(doc, y: number, settings: DocumentSettingsD
 
   doc
     .fillColor("#000000")
-    .font("Regular")
+    .font("Bold")
     .fontSize(9)
-    .text(`For ${legalName}`, 400, _y, { width: 155, align: 'right' });
+    .text('Terms & Conditions', 40, _y, { width: 515 });
 
-  let signatureY = _y + 15;
-
-  if (gst?.signatureSource) {
-    try {
-      const responseImage = await fetch(gst.signatureSource);
-      if (responseImage.ok && responseImage.status == 200) {
-        const responseImageBuffer = await responseImage.arrayBuffer();
-        const responseBuffer = Buffer.from(responseImageBuffer);
-        doc.image(responseBuffer, 440, signatureY, { align: 'right', width: 115, height: 40 });
-      }
-    } catch {
-      // ponytail: signature is optional, silently skip on fetch failure rather than breaking the invoice
-    }
-    signatureY += 45;
-  } else {
-    signatureY += 40;
-  }
+  _y += 14;
 
   doc
-    .fontSize(9)
-    .text('Authorised Signatory', 400, signatureY, { width: 155, align: 'right' });
+    .font("Regular")
+    .fontSize(8)
+    .text(TERMS.join('\n'), 40, _y, { width: 515 });
 
-  return signatureY + 15;
+  _y += TERMS.length * 11 + 10;
+
+  doc
+    .font("Regular")
+    .fontSize(8)
+    .text('This is a computer-generated invoice and does not require a signature.', 40, _y, { width: 515 });
+
+  return _y + 15;
 }
