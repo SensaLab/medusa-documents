@@ -40,38 +40,49 @@ export const POST = async (
       relations: ['shipping_address', 'billing_address', 'items']
     })
     if (order) {
-      const result = await documentsModuleService.generateInvoiceForOrder(order)
-      if (result.invoice) {
-        const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-        const { 
-          data: [orderWithInvoice],
-        } = await query.graph({
-          entity: "order",
-          filters: {
-            id: [
-              order.id
-            ]
-          },
-          fields: [
-            "document_invoice.*",
-          ],
-        });
-        await assignInvoiceToOrderWorkflow(req.scope)
-          .run({
-            input: {
-              orderId: order.id,
-              newInvoiceId: result.invoice.id,
-              oldInvoiceId: orderWithInvoice.document_invoice ? orderWithInvoice.document_invoice.id : undefined
-            }
-          })
+      // Idempotency check: if order already has an invoice, return it instead of minting new number
+      const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+      const { 
+        data: [orderWithInvoice],
+      } = await query.graph({
+        entity: "order",
+        filters: {
+          id: [
+            order.id
+          ]
+        },
+        fields: [
+          "document_invoice.*",
+        ],
+      });
+      
+      const forceNew: boolean = body.force_new === true;
 
-        res.status(201).json(result);
+      let result;
+      if (orderWithInvoice.document_invoice && !forceNew) {
+        // Order already has invoice - regenerate PDF from existing invoice
+        result = await documentsModuleService.getInvoice(order, orderWithInvoice.document_invoice.id, true);
       } else {
-        throw new MedusaError(
-          MedusaError.Types.INVALID_DATA,
-          'Invoice not generated'
-        );
+        // No existing invoice, or forced - mint a new number
+        result = await documentsModuleService.generateInvoiceForOrder(order)
+        if (result.invoice) {
+          await assignInvoiceToOrderWorkflow(req.scope)
+            .run({
+              input: {
+                orderId: order.id,
+                newInvoiceId: result.invoice.id,
+                oldInvoiceId: orderWithInvoice.document_invoice ? orderWithInvoice.document_invoice.id : undefined
+              }
+            })
+        } else {
+          throw new MedusaError(
+            MedusaError.Types.INVALID_DATA,
+            'Invoice not generated'
+          );
+        }
       }
+
+      res.status(201).json(result);
     } else {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,

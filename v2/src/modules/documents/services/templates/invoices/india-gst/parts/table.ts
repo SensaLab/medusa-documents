@@ -25,8 +25,9 @@ function generateTableRow(doc, y, item, hsn, quantity, unitCost, lineTotal) {
   }
 
   doc
-    .text(item, 40, _y, { width: 190 })
-    .text(hsn, 235, _y, { width: 55 })
+    // ponytail: HSN/SAC column hidden, B2C-only for now. Re-enable when B2B sales resume: restore width 190, uncomment .text(hsn, 235, _y, { width: 55 })
+    .text(item, 40, _y, { width: 250 })
+    // .text(hsn, 235, _y, { width: 55 })
     .text(quantity, 295, _y, { width: 45, align: "right" })
     .text(unitCost, 345, _y, { width: 85, align: "right" })
     .text(lineTotal, 435, _y, { width: 120, align: "right" });

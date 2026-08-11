@@ -16,7 +16,7 @@ import DocumentSettings from "./document-settings"
 
 const DocumentInvoice = model.define("document_invoice", {
   id: model.id().primaryKey(),
-  number: model.number(),
+  number: model.number().unique(),
   displayNumber: model.text(),
   invoiceSettings: model.belongsTo(() => DocumentInvoiceSettings, {
     mappedBy: 'documentInvoice'

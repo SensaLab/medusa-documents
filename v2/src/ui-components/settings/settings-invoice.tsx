@@ -64,7 +64,7 @@ const InvoiceSettingsForm = ({ invoiceSettings, setOpenModal } : {invoiceSetting
   }
   const INVOICE_NUMBER_PLACEHOLDER = '{invoice_number}';
   const errorText = `Text ${INVOICE_NUMBER_PLACEHOLDER} needs to be included in input.`
-  const LABEL_MUST_FORMAT = `Format must include ${INVOICE_NUMBER_PLACEHOLDER}`;
+  const LABEL_MUST_FORMAT = `Format must include ${INVOICE_NUMBER_PLACEHOLDER}. Optional: {year}, {month} (from order date), e.g. INV-{year}-{month}-{invoice_number}`;
   const LABEL_MUST_FORCED = `Forced number must be a number`;
   const LABEL_INFO_FORCED = `It will auto-increment starting from this number.`;
 

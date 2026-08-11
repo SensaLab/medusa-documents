@@ -22,7 +22,7 @@ import DocumentPackingSlipSettings from "./models/document-packing-slip-settings
 import { DocumentAddress } from "./types/api";
 import { IndiaGstDetailsDTO } from "./types/dto";
 import { InvoiceTemplateKind, PackingSlipTemplateKind } from "./types/template-kind";
-import { INVOICE_NUMBER_PLACEHOLDER, PACKING_SLIP_NUMBER_PLACEHOLDER } from "./types/constants";
+import { INVOICE_NUMBER_PLACEHOLDER, PACKING_SLIP_NUMBER_PLACEHOLDER, INVOICE_YEAR_PLACEHOLDER, INVOICE_MONTH_PLACEHOLDER } from "./types/constants";
 import { generateInvoice, validateInputForProvidedKind } from "./services/generators/invoice-generator";
 import { generatePackingSlip, validateInputForProvidedKind as validatePackingSlipInputForProvidedKind } from "./services/generators/packing-slip-generator";
 import { DocumentInvoiceDTO, DocumentInvoiceSettingsDTO, DocumentPackingSlipDTO } from "./types/dto";
@@ -101,7 +101,7 @@ class DocumentsModuleService extends MedusaService({
 
     const lastInvoice = await this.listDocumentInvoices({}, {
       order: {
-        created_at: "DESC"
+        number: "DESC"
       },
       take: 1
     });
@@ -112,10 +112,21 @@ class DocumentsModuleService extends MedusaService({
     return '1';
   }
 
+  private formatInvoiceDisplayNumber(format: string | null | undefined, nextNumber: string, date: Date): string {
+    if (!format) {
+      return nextNumber;
+    }
+    const paddedNumber = nextNumber.padStart(2, '0');
+    return format
+      .replace(INVOICE_YEAR_PLACEHOLDER, date.getFullYear().toString())
+      .replace(INVOICE_MONTH_PLACEHOLDER, (date.getMonth() + 1).toString().padStart(2, '0'))
+      .replace(INVOICE_NUMBER_PLACEHOLDER, paddedNumber);
+  }
+
   private async getNextPackingSlipNumber() {
     const lastPackingSlip = await this.listDocumentPackingSlips({}, {
       order: {
-        created_at: "DESC"
+        number: "DESC"
       },
       take: 1
     });
@@ -236,7 +247,7 @@ class DocumentsModuleService extends MedusaService({
         if (validationPassed) {
           const testInvoice: DocumentInvoiceDTO = {
             number: parseInt(nextNumber),
-            displayNumber: invoiceSettings.numberFormat ? invoiceSettings.numberFormat.replace(INVOICE_NUMBER_PLACEHOLDER, nextNumber) : nextNumber,
+            displayNumber: this.formatInvoiceDisplayNumber(invoiceSettings.numberFormat, nextNumber, order.created_at ? new Date(order.created_at) : new Date()),
             created_at: new Date(Date.now())
           }
 
@@ -298,7 +309,7 @@ class DocumentsModuleService extends MedusaService({
 
             const entryInvoice: any = {
               number: parseInt(nextNumber),
-              displayNumber: invoiceSettings.numberFormat ? invoiceSettings.numberFormat.replace(INVOICE_NUMBER_PLACEHOLDER, nextNumber) : nextNumber,
+              displayNumber: this.formatInvoiceDisplayNumber(invoiceSettings.numberFormat, nextNumber, order.created_at ? new Date(order.created_at) : new Date()),
               created_at: new Date(Date.now()),
               invoice_settings_id: invoiceSettings.id,
               settings_id: lastDocumentSettings[0].id
@@ -565,7 +576,7 @@ class DocumentsModuleService extends MedusaService({
   async getTestDisplayNumber(formatNumber?: string, forcedNumber?: string) : Promise<string | undefined> {
     const nextNumber: string | undefined = forcedNumber !== undefined ? forcedNumber : await this.getNextInvoiceNumber();
     if (nextNumber) {
-      return formatNumber ? formatNumber.replace(INVOICE_NUMBER_PLACEHOLDER, nextNumber) : nextNumber;
+      return this.formatInvoiceDisplayNumber(formatNumber, nextNumber, new Date());
     }
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,

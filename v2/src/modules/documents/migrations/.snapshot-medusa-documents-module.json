@@ -550,6 +550,16 @@
           "expression": "CREATE INDEX IF NOT EXISTS \"IDX_document_invoice_deleted_at\" ON \"document_invoice\" (deleted_at) WHERE deleted_at IS NULL"
         },
         {
+          "keyName": "document_invoice_number_unique",
+          "columnNames": [
+            "number"
+          ],
+          "composite": false,
+          "constraint": true,
+          "primary": false,
+          "unique": true
+        },
+        {
           "keyName": "document_invoice_pkey",
           "columnNames": [
             "id"
