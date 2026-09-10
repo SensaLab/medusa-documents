@@ -64,7 +64,8 @@ export const POST = async (
         result = await documentsModuleService.getInvoice(order, orderWithInvoice.document_invoice.id, true);
       } else {
         // No existing invoice, or forced - mint a new number
-        result = await documentsModuleService.generateInvoiceForOrder(order)
+        const customNumber: string | undefined = typeof body.custom_number === 'string' && body.custom_number.trim().length ? body.custom_number.trim() : undefined;
+        result = await documentsModuleService.generateInvoiceForOrder(order, customNumber)
         if (result.invoice) {
           await assignInvoiceToOrderWorkflow(req.scope)
             .run({

@@ -284,7 +284,7 @@ class DocumentsModuleService extends MedusaService({
     return InvoiceTemplateKind.BASIC;
   }
 
-  async generateInvoiceForOrder(order?: OrderDTO) : Promise<any> { 
+  async generateInvoiceForOrder(order?: OrderDTO, customDisplayNumber?: string) : Promise<any> {
     if (order) {
       const lastDocumentSettings = await this.listDocumentSettings({}, {
         order: {
@@ -309,7 +309,8 @@ class DocumentsModuleService extends MedusaService({
 
             const entryInvoice: any = {
               number: parseInt(nextNumber),
-              displayNumber: this.formatInvoiceDisplayNumber(invoiceSettings.numberFormat, nextNumber, order.created_at ? new Date(order.created_at) : new Date()),
+              // ponytail: temporary manual override so GST filing isn't blocked while the counter redesign is pending
+              displayNumber: this.formatInvoiceDisplayNumber(invoiceSettings.numberFormat, customDisplayNumber ?? nextNumber, order.created_at ? new Date(order.created_at) : new Date()),
               created_at: new Date(Date.now()),
               invoice_settings_id: invoiceSettings.id,
               settings_id: lastDocumentSettings[0].id
