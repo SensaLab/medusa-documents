@@ -16,7 +16,11 @@ import DocumentSettings from "./document-settings"
 
 const DocumentInvoice = model.define("document_invoice", {
   id: model.id().primaryKey(),
-  number: model.number().unique(),
+  // Legacy counter, has duplicates from the old "forced number" setting. Not used for numbering any more.
+  number: model.number(),
+  // Serial printed on GST invoices. Null on legacy/test rows.
+  gstSerial: model.number().nullable(),
+  order_id: model.text().nullable(),
   displayNumber: model.text(),
   invoiceSettings: model.belongsTo(() => DocumentInvoiceSettings, {
     mappedBy: 'documentInvoice'
@@ -24,6 +28,17 @@ const DocumentInvoice = model.define("document_invoice", {
   settings: model.belongsTo(() => DocumentSettings, {
     mappedBy: 'documentInvoice'
   })
-})
+}).indexes([
+  {
+    name: "IDX_document_invoice_gstSerial_unique",
+    on: ["gstSerial"],
+    unique: true,
+    where: `"gstSerial" IS NOT NULL`,
+  },
+  {
+    name: "IDX_document_invoice_order_id",
+    on: ["order_id"],
+  },
+])
 
 export default DocumentInvoice

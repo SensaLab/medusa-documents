@@ -19,15 +19,13 @@ import { DocumentInvoiceSettings } from "../types/api";
 import InvoiceSettingsDisplayNumber from "./settings-invoice-display-number";
 
 type InvoiceSettings = {
-  formatNumber: string,
-  forcedNumber?: number
+  formatNumber: string
 }
 
 const InvoiceSettingsForm = ({ invoiceSettings, setOpenModal } : {invoiceSettings?: DocumentInvoiceSettings, setOpenModal: any}) => {
 
   const { register, handleSubmit, formState: { errors } } = useForm<InvoiceSettings>()
   const [formatNumber, setFormatNumber] = useState(invoiceSettings?.numberFormat);
-  const [forcedNumber, setForcedNumber] = useState(invoiceSettings?.forcedNumber);
   const [ error, setError ] = useState<string | undefined>(undefined);
 
   const onSubmit = (data: InvoiceSettings) => {
@@ -38,8 +36,7 @@ const InvoiceSettingsForm = ({ invoiceSettings, setOpenModal } : {invoiceSetting
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        formatNumber: data.formatNumber,
-        forcedNumber: data.forcedNumber !== undefined && data.forcedNumber.toString().length ? data.forcedNumber : undefined
+        formatNumber: data.formatNumber
       })
     })
     .then(async (response) => {
@@ -65,8 +62,6 @@ const InvoiceSettingsForm = ({ invoiceSettings, setOpenModal } : {invoiceSetting
   const INVOICE_NUMBER_PLACEHOLDER = '{invoice_number}';
   const errorText = `Text ${INVOICE_NUMBER_PLACEHOLDER} needs to be included in input.`
   const LABEL_MUST_FORMAT = `Format must include ${INVOICE_NUMBER_PLACEHOLDER}. Optional: {year}, {month} (from order date), e.g. INV-{year}-{month}-{invoice_number}`;
-  const LABEL_MUST_FORCED = `Forced number must be a number`;
-  const LABEL_INFO_FORCED = `It will auto-increment starting from this number.`;
 
   const validateFormatNumber = (value) => {
     if (!value.includes(INVOICE_NUMBER_PLACEHOLDER)) {
@@ -74,13 +69,6 @@ const InvoiceSettingsForm = ({ invoiceSettings, setOpenModal } : {invoiceSetting
     }
     return true;
   };
-  const validateForcedNumber = (value) => {
-    if (value.length && isNaN(Number(value))) {
-      return LABEL_MUST_FORCED;
-    }
-    return true;
-  };
-
   return (
     <form>
       <Grid container direction={'column'} rowSpacing={4} paddingTop={8}>
@@ -121,48 +109,12 @@ const InvoiceSettingsForm = ({ invoiceSettings, setOpenModal } : {invoiceSetting
         </Grid>
         <Grid container direction={'column'} spacing={1} marginTop={2}>
           <Grid item>
-            <Grid container direction={'column'}>
-              <Grid item>
-                <Label size="small">
-                  Forced number
-                </Label>
-              </Grid>
-              <Grid item>
-                <Label size='xsmall'>
-                  {LABEL_INFO_FORCED}
-                </Label>
-              </Grid>
-            </Grid>
-          </Grid>
-          <Grid item>
-            <Input 
-              defaultValue={invoiceSettings?.forcedNumber !== undefined &&  invoiceSettings.forcedNumber !== null 
-                ? invoiceSettings.forcedNumber : ''}
-              type="number"
-              {...register('forcedNumber', {
-                validate: validateForcedNumber,
-                onChange(e) {
-                  const value = e.target.value
-                  if (typeof validateForcedNumber(value) === 'string') {
-                    const result: string = validateForcedNumber(value) as unknown as any;
-                    setError(result)
-                  } else {
-                    setError(undefined);
-                    setForcedNumber(value);
-                  }
-                },
-              })}
-            />
-          </Grid>
-        </Grid>
-        <Grid container direction={'column'} spacing={1} marginTop={2}>
-          <Grid item>
             <Label size="small">
               Your next invoice number will be:
             </Label>
           </Grid>
-          {errors.formatNumber == undefined && errors.forcedNumber == undefined && error == undefined && <Grid item>
-            <InvoiceSettingsDisplayNumber formatNumber={formatNumber} forcedNumber={forcedNumber !== undefined && forcedNumber !== null ? parseInt(forcedNumber) : undefined}/>
+          {errors.formatNumber == undefined && error == undefined && <Grid item>
+            <InvoiceSettingsDisplayNumber formatNumber={formatNumber}/>
           </Grid>}
         </Grid>
         <Grid item>
@@ -174,7 +126,7 @@ const InvoiceSettingsForm = ({ invoiceSettings, setOpenModal } : {invoiceSetting
             Save
           </Button>
         </Grid>
-        {(errors.formatNumber || errors.forcedNumber) && <Grid item>
+        {errors.formatNumber && <Grid item>
           <Alert variant="error">{errorText}</Alert>
         </Grid>}
           {error && <Grid item>
