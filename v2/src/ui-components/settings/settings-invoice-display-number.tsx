@@ -14,15 +14,12 @@ import { Input } from "@medusajs/ui"
 import { Grid } from "@mui/material";
 import { useEffect, useState } from "react";
 
-const InvoiceSettingsDisplayNumber = ({ formatNumber, forcedNumber } : {formatNumber?: string, forcedNumber?: number}) => {
+const InvoiceSettingsDisplayNumber = ({ formatNumber } : {formatNumber?: string}) => {
 
   const result: URLSearchParams = new URLSearchParams()
 
   if (formatNumber) {
     result.append('formatNumber', formatNumber);
-  }
-  if (forcedNumber) {
-    result.append('forcedNumber', forcedNumber.toString());
   }
 
   const [data, setData] = useState<any | undefined>(undefined)
@@ -33,7 +30,7 @@ const InvoiceSettingsDisplayNumber = ({ formatNumber, forcedNumber } : {formatNu
 
   useEffect(() => {
     setLoading(true);
-  }, [formatNumber, forcedNumber])
+  }, [formatNumber])
 
   useEffect(() => {
     if (!isLoading) {

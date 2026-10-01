@@ -11,10 +11,11 @@
  */
 
 import { MedusaError, MedusaErrorTypes } from "@medusajs/utils"
-import { MedusaService } from "@medusajs/framework/utils"
+import { InjectTransactionManager, MedusaContext, MedusaService } from "@medusajs/framework/utils"
 import { ModulesSdkUtils } from "@medusajs/framework/utils"
-import { Logger, OrderDTO } from "@medusajs/framework/types"
+import { Context, Logger, OrderDTO } from "@medusajs/framework/types"
 import DocumentInvoice from "./models/document-invoice";
+import DocumentNumber from "./models/document-number";
 import DocumentPackingSlip from "./models/document-packing-slip";
 import DocumentSettings from "./models/document-settings";
 import DocumentInvoiceSettings from "./models/document-invoice-settings";
@@ -22,10 +23,12 @@ import DocumentPackingSlipSettings from "./models/document-packing-slip-settings
 import { DocumentAddress } from "./types/api";
 import { IndiaGstDetailsDTO } from "./types/dto";
 import { InvoiceTemplateKind, PackingSlipTemplateKind } from "./types/template-kind";
-import { INVOICE_NUMBER_PLACEHOLDER, PACKING_SLIP_NUMBER_PLACEHOLDER, INVOICE_YEAR_PLACEHOLDER, INVOICE_MONTH_PLACEHOLDER } from "./types/constants";
+import { INVOICE_NUMBER_PLACEHOLDER, PACKING_SLIP_NUMBER_PLACEHOLDER, INVOICE_YEAR_PLACEHOLDER, INVOICE_MONTH_PLACEHOLDER, INVOICE_TIMEZONE } from "./types/constants";
 import { generateInvoice, validateInputForProvidedKind } from "./services/generators/invoice-generator";
 import { generatePackingSlip, validateInputForProvidedKind as validatePackingSlipInputForProvidedKind } from "./services/generators/packing-slip-generator";
 import { DocumentInvoiceDTO, DocumentInvoiceSettingsDTO, DocumentPackingSlipDTO } from "./types/dto";
+
+const GST_SERIAL = "gstSerial";
 
 type ModuleOptions = {
 }
@@ -40,7 +43,8 @@ class DocumentsModuleService extends MedusaService({
   DocumentPackingSlip,
   DocumentSettings,
   DocumentInvoiceSettings,
-  DocumentPackingSlipSettings
+  DocumentPackingSlipSettings,
+  DocumentNumber
 }) {
 
   protected options_?: ModuleOptions
@@ -53,63 +57,50 @@ class DocumentsModuleService extends MedusaService({
     this.options_ = options;
   }
 
-  private async resetForcedNumberByCreatingNewSettings() : Promise<any> {
-    const lastDocumentInvoiceSettings = await this.listDocumentInvoiceSettings({}, {
-      order: {
-        created_at: "DESC"
-      },
-      take: 1
-    })
-    if (lastDocumentInvoiceSettings && lastDocumentInvoiceSettings.length) {
-      const result = await this.createDocumentInvoiceSettings({
-        forcedNumber: undefined,
-        numberFormat: lastDocumentInvoiceSettings[0].numberFormat,
-        template: lastDocumentInvoiceSettings[0].template
-      });
-      return result;
-    } else {
-      const result = await this.createDocumentInvoiceSettings({
-        forcedNumber: undefined
-      })
-      return result;
-    }
+  // Next serial without taking it. Undefined until the "gstSerial" row is seeded.
+  private async peekNextGstSerial(): Promise<number | undefined> {
+    const [counter] = await this.listDocumentNumbers({ name: GST_SERIAL }, { take: 1 });
+    return counter ? counter.value + 1 : undefined;
   }
 
-  private async getInvoiceForcedNumber() : Promise<string | undefined> {
-    const lastDocumentInvoiceSettings = await this.listDocumentInvoiceSettings({}, {
-      order: {
-        created_at: "DESC"
-      },
-      take: 1
-    });
-    if (lastDocumentInvoiceSettings && lastDocumentInvoiceSettings.length && lastDocumentInvoiceSettings[0].forcedNumber) {
-      const nextNumber: string = lastDocumentInvoiceSettings[0].forcedNumber.toString();
-      return nextNumber;
-    }
-    return undefined;
-  }
-
-  private async getNextInvoiceNumber(resetForcedNumber?: boolean) {
-    const forcedNumber: string | undefined = await this.getInvoiceForcedNumber();
-
-    if (forcedNumber !== undefined) {
-      if (resetForcedNumber) {
-        await this.resetForcedNumberByCreatingNewSettings();
-      }
-      return forcedNumber;
+  // Takes the next GST serial and saves the invoice in one transaction.
+  // The row lock on the counter makes concurrent calls wait their turn; a rollback hands the serial back.
+  @InjectTransactionManager()
+  protected async issueInvoice_(
+    orderId: string,
+    expectedCurrentInvoiceId: string | undefined,
+    buildEntry: (gstSerial: number) => Record<string, unknown>,
+    @MedusaContext() sharedContext: Context = {}
+  ): Promise<{ invoice: any, created: boolean }> {
+    const manager = sharedContext.transactionManager as any;
+    const [counter] = await manager.execute(
+      `select "value" from "document_number" where "name" = ? and "deleted_at" is null for update`,
+      [GST_SERIAL]
+    );
+    if (!counter) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Invoice numbering is not set up: "${GST_SERIAL}" counter is missing`
+      );
     }
 
-    const lastInvoice = await this.listDocumentInvoices({}, {
-      order: {
-        number: "DESC"
-      },
-      take: 1
-    });
-
-    if (lastInvoice && lastInvoice.length) {
-      return (lastInvoice[0].number + 1).toString();
+    // Checked under the lock: a request that waited behind us sees the invoice we just issued
+    const [current] = await this.listDocumentInvoices(
+      { order_id: orderId },
+      { order: { created_at: "DESC" }, take: 1 },
+      sharedContext
+    );
+    if (current && current.id !== expectedCurrentInvoiceId) {
+      return { invoice: current, created: false };
     }
-    return '1';
+
+    const gstSerial = Number(counter.value) + 1;
+    await manager.execute(
+      `update "document_number" set "value" = ?, "updated_at" = now() where "name" = ? and "deleted_at" is null`,
+      [gstSerial, GST_SERIAL]
+    );
+    const invoice = await this.createDocumentInvoices(buildEntry(gstSerial) as any, sharedContext);
+    return { invoice, created: true };
   }
 
   private formatInvoiceDisplayNumber(format: string | null | undefined, nextNumber: string, date: Date): string {
@@ -117,9 +108,13 @@ class DocumentsModuleService extends MedusaService({
       return nextNumber;
     }
     const paddedNumber = nextNumber.padStart(2, '0');
+    // Explicit timezone so the printed month doesn't depend on the server's TZ
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: INVOICE_TIMEZONE, year: 'numeric', month: '2-digit' }).formatToParts(date);
+    const year = parts.find((p) => p.type === 'year')!.value;
+    const month = parts.find((p) => p.type === 'month')!.value;
     return format
-      .replace(INVOICE_YEAR_PLACEHOLDER, date.getFullYear().toString())
-      .replace(INVOICE_MONTH_PLACEHOLDER, (date.getMonth() + 1).toString().padStart(2, '0'))
+      .replace(INVOICE_YEAR_PLACEHOLDER, year)
+      .replace(INVOICE_MONTH_PLACEHOLDER, month)
       .replace(INVOICE_NUMBER_PLACEHOLDER, paddedNumber);
   }
 
@@ -241,8 +236,8 @@ class DocumentsModuleService extends MedusaService({
         });
       if (lastInvoiceSettings && lastInvoiceSettings.length) {
         const invoiceSettings: any = lastInvoiceSettings[0];
-        const nextNumber: string = await this.getNextInvoiceNumber();
-        
+        const nextNumber: string = ((await this.peekNextGstSerial()) ?? 1).toString();
+
         const [validationPassed, info] = validateInputForProvidedKind(templateKind, lastDocumentSettings[0]);
         if (validationPassed) {
           const testInvoice: DocumentInvoiceDTO = {
@@ -284,7 +279,8 @@ class DocumentsModuleService extends MedusaService({
     return InvoiceTemplateKind.BASIC;
   }
 
-  async generateInvoiceForOrder(order?: OrderDTO, customDisplayNumber?: string) : Promise<any> {
+  // expectedCurrentInvoiceId: the invoice the caller saw linked to the order (replaced when regenerating).
+  async generateInvoiceForOrder(order?: OrderDTO, expectedCurrentInvoiceId?: string) : Promise<any> {
     if (order) {
       const lastDocumentSettings = await this.listDocumentSettings({}, {
         order: {
@@ -304,24 +300,28 @@ class DocumentsModuleService extends MedusaService({
           const calculatedTemplateKind = this.calculateTemplateKind(lastDocumentInvoiceSettings[0]);
           const [validationPassed, info] = validateInputForProvidedKind(calculatedTemplateKind, lastDocumentSettings[0]);
           if (validationPassed) {
-            const RESET_FORCED_NUMBER = true;
-            const nextNumber: string = await this.getNextInvoiceNumber(RESET_FORCED_NUMBER);
-
-            const entryInvoice: any = {
-              number: parseInt(nextNumber),
-              // ponytail: temporary manual override so GST filing isn't blocked while the counter redesign is pending
-              displayNumber: this.formatInvoiceDisplayNumber(invoiceSettings.numberFormat, customDisplayNumber ?? nextNumber, order.created_at ? new Date(order.created_at) : new Date()),
-              created_at: new Date(Date.now()),
-              invoice_settings_id: invoiceSettings.id,
-              settings_id: lastDocumentSettings[0].id
+            const orderDate = order.created_at ? new Date(order.created_at) : new Date();
+            const { invoice: invoiceResult, created } = await this.issueInvoice_(
+              order.id,
+              expectedCurrentInvoiceId,
+              (gstSerial) => ({
+                number: gstSerial,
+                gstSerial: gstSerial,
+                order_id: order.id,
+                displayNumber: this.formatInvoiceDisplayNumber(invoiceSettings.numberFormat, gstSerial.toString(), orderDate),
+                invoice_settings_id: invoiceSettings.id,
+                settings_id: lastDocumentSettings[0].id
+              })
+            );
+            if (!created) {
+              return { ...(await this.getInvoice(order, invoiceResult.id, true)), created: false };
             }
-
-            const invoiceResult = await this.createDocumentInvoices(entryInvoice)
 
             const buffer = await generateInvoice(calculatedTemplateKind, lastDocumentSettings[0], invoiceResult, order);
             return {
               invoice: invoiceResult,
-              buffer: buffer
+              buffer: buffer,
+              created: created
             }
           } else {
             throw new MedusaError(
@@ -476,7 +476,7 @@ class DocumentsModuleService extends MedusaService({
     }
   }
 
-  async updateInvoiceSettings(newFormatNumber?: string, forcedNumber?: string, invoiceTemplate?: InvoiceTemplateKind) : Promise<any> {
+  async updateInvoiceSettings(newFormatNumber?: string, invoiceTemplate?: InvoiceTemplateKind) : Promise<any> {
     const lastDocumentInvoiceSettings = await this.listDocumentInvoiceSettings({}, {
       order: {
         created_at: "DESC"
@@ -486,14 +486,12 @@ class DocumentsModuleService extends MedusaService({
     if (lastDocumentInvoiceSettings && lastDocumentInvoiceSettings.length) {
       const result = await this.createDocumentInvoiceSettings({
         numberFormat: newFormatNumber ?? lastDocumentInvoiceSettings[0].numberFormat,
-        forcedNumber : forcedNumber ? parseInt(forcedNumber) : lastDocumentInvoiceSettings[0].forcedNumber,
         template : invoiceTemplate ?? lastDocumentInvoiceSettings[0].template,
       })
       return result;
     } else {
       const result = await this.createDocumentInvoiceSettings({
         numberFormat: newFormatNumber,
-        forcedNumber : forcedNumber ? parseInt(forcedNumber) : undefined,
         template : invoiceTemplate
       })
       return result;
@@ -574,14 +572,14 @@ class DocumentsModuleService extends MedusaService({
     }
   }
 
-  async getTestDisplayNumber(formatNumber?: string, forcedNumber?: string) : Promise<string | undefined> {
-    const nextNumber: string | undefined = forcedNumber !== undefined ? forcedNumber : await this.getNextInvoiceNumber();
-    if (nextNumber) {
-      return this.formatInvoiceDisplayNumber(formatNumber, nextNumber, new Date());
+  async getTestDisplayNumber(formatNumber?: string) : Promise<string | undefined> {
+    const nextSerial = await this.peekNextGstSerial();
+    if (nextSerial !== undefined) {
+      return this.formatInvoiceDisplayNumber(formatNumber, nextSerial.toString(), new Date());
     }
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      'Neither forced number is set or any order present'
+      `Invoice numbering is not set up: "${GST_SERIAL}" counter is missing`
     );
   }
 }

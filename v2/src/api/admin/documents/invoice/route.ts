@@ -57,29 +57,37 @@ export const POST = async (
       });
       
       const forceNew: boolean = body.force_new === true;
+      const linkedInvoiceId: string | undefined = orderWithInvoice.document_invoice?.id;
 
       let result;
-      if (orderWithInvoice.document_invoice && !forceNew) {
+      if (linkedInvoiceId && !forceNew) {
         // Order already has invoice - regenerate PDF from existing invoice
-        result = await documentsModuleService.getInvoice(order, orderWithInvoice.document_invoice.id, true);
+        result = await documentsModuleService.getInvoice(order, linkedInvoiceId, true);
       } else {
-        // No existing invoice, or forced - mint a new number
-        const customNumber: string | undefined = typeof body.custom_number === 'string' && body.custom_number.trim().length ? body.custom_number.trim() : undefined;
-        result = await documentsModuleService.generateInvoiceForOrder(order, customNumber)
-        if (result.invoice) {
-          await assignInvoiceToOrderWorkflow(req.scope)
-            .run({
-              input: {
-                orderId: order.id,
-                newInvoiceId: result.invoice.id,
-                oldInvoiceId: orderWithInvoice.document_invoice ? orderWithInvoice.document_invoice.id : undefined
-              }
-            })
-        } else {
+        // No existing invoice, or forced - the service takes the next GST serial under a lock
+        result = await documentsModuleService.generateInvoiceForOrder(order, linkedInvoiceId)
+        if (!result?.invoice) {
           throw new MedusaError(
             MedusaError.Types.INVALID_DATA,
             'Invoice not generated'
           );
+        }
+        if (result.invoice.id !== linkedInvoiceId) {
+          try {
+            await assignInvoiceToOrderWorkflow(req.scope)
+              .run({
+                input: {
+                  orderId: order.id,
+                  newInvoiceId: result.invoice.id,
+                  oldInvoiceId: linkedInvoiceId
+                }
+              })
+          } catch (e) {
+            // Invoice came from a concurrent request, which links it itself
+            if (result.created) {
+              throw e;
+            }
+          }
         }
       }
 

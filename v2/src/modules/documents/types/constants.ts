@@ -14,3 +14,5 @@ export const INVOICE_NUMBER_PLACEHOLDER = `{invoice_number}`;
 export const PACKING_SLIP_NUMBER_PLACEHOLDER = `{packing_slip_number}`;
 export const INVOICE_YEAR_PLACEHOLDER = `{year}`;
 export const INVOICE_MONTH_PLACEHOLDER = `{month}`;
+// ponytail: hardcoded for the Indian GST store; make it a module option if another store needs a different TZ
+export const INVOICE_TIMEZONE = `Asia/Kolkata`;

@@ -24,12 +24,11 @@ export const GET = async (
 
   const rawRequest = req as unknown as any;
   const formatNumber: string | undefined = rawRequest.query.formatNumber;
-  const forcedNumber: string | undefined = rawRequest.query.forcedNumber;
 
   const documentsModuleService: DocumentsModuleService = req.scope.resolve(DOCUMENTS_MODULE)
 
   try {
-    const nextDisplayNumber = await documentsModuleService.getTestDisplayNumber(formatNumber, forcedNumber)
+    const nextDisplayNumber = await documentsModuleService.getTestDisplayNumber(formatNumber)
     res.status(201).json({
       displayNumber: nextDisplayNumber
     })
